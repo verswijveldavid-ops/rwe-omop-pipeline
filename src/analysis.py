@@ -137,3 +137,72 @@ def safety(con, subs, outcome=GI_BLEED):
     return {"exp_n": exp_n, "exp_ev": exp_ev, "r_exp": 100 * r_exp,
             "unexp_n": unexp_n, "unexp_ev": unexp_ev, "r_unexp": 100 * r_unexp,
             "rr": rr}
+
+_COMPARATIVE_QUERY = """
+WITH nsaid AS (
+    SELECT d.person_id, MIN(CAST(d.drug_exposure_start_date AS DATE)) AS idx
+    FROM drug_exposure d JOIN concept co ON co.concept_id = d.drug_concept_id
+    WHERE lower(co.concept_name) LIKE '%ibuprofen%' OR lower(co.concept_name) LIKE '%naproxen%'
+    GROUP BY d.person_id
+),
+acet AS (
+    SELECT d.person_id, MIN(CAST(d.drug_exposure_start_date AS DATE)) AS idx
+    FROM drug_exposure d JOIN concept co ON co.concept_id = d.drug_concept_id
+    WHERE lower(co.concept_name) LIKE '%acetaminophen%'
+    GROUP BY d.person_id
+),
+cohort AS (
+    SELECT person_id, 'NSAID' AS grp, idx AS index_date FROM nsaid
+    UNION ALL
+    SELECT person_id, 'Acetaminophen' AS grp, idx AS index_date
+    FROM acet WHERE person_id NOT IN (SELECT person_id FROM nsaid)
+),
+first_bleed AS (
+    SELECT person_id, MIN(CAST(condition_start_date AS DATE)) AS bleed
+    FROM condition_occurrence
+    WHERE condition_concept_id IN (4027663, 192671)
+    GROUP BY person_id
+)
+SELECT c.grp,
+       date_part('year', c.index_date) - p.year_of_birth AS age,
+       upper(g.concept_name) AS sex,
+       CASE WHEN fb.bleed > c.index_date THEN 1 ELSE 0 END AS outcome,
+       CASE WHEN fb.bleed <= c.index_date THEN 1 ELSE 0 END AS prior_bleed
+FROM cohort c
+JOIN person p ON p.person_id = c.person_id
+JOIN concept g ON g.concept_id = p.gender_concept_id
+LEFT JOIN first_bleed fb ON fb.person_id = c.person_id
+"""
+
+def age_distribution(con, subs):
+    return con.execute(
+        _cohort_cte(subs) + """
+        SELECT date_part('year', c.index_date) - p.year_of_birth AS age
+        FROM cohort c JOIN person p ON p.person_id = c.person_id
+        WHERE date_part('year', c.index_date) - p.year_of_birth BETWEEN 0 AND 110
+        """
+    ).df()
+
+def comparative_safety(con):
+    import math
+    import statsmodels.formula.api as smf
+
+    df = con.execute(_COMPARATIVE_QUERY).df()
+    df = df[df["prior_bleed"] == 0].copy()
+    tab = df.groupby("grp")["outcome"].agg(["size", "sum"])
+    groups = {}
+    for grp in ("NSAID", "Acetaminophen"):
+        n, ev = int(tab.loc[grp, "size"]), int(tab.loc[grp, "sum"])
+        groups[grp] = {"n": n, "events": ev, "risk": 100 * ev / n}
+    a, n1 = groups["NSAID"]["events"], groups["NSAID"]["n"]
+    c, n0 = groups["Acetaminophen"]["events"], groups["Acetaminophen"]["n"]
+    rr = (a / n1) / (c / n0)
+    se = math.sqrt(1 / a - 1 / n1 + 1 / c - 1 / n0)
+    rr_ci = (math.exp(math.log(rr) - 1.96 * se), math.exp(math.log(rr) + 1.96 * se))
+    df["exposed"] = (df["grp"] == "NSAID").astype(int)
+    df["female"] = (df["sex"] == "FEMALE").astype(int)
+    model = smf.logit("outcome ~ exposed + age + female", data=df).fit(disp=False)
+    or_adj = math.exp(model.params["exposed"])
+    ci = model.conf_int().loc["exposed"]
+    return {"groups": groups, "rr": rr, "rr_ci": rr_ci,
+            "or_adj": or_adj, "or_ci": (math.exp(ci[0]), math.exp(ci[1]))}
