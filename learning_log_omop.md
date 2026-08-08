@@ -38,3 +38,9 @@
 - Asked the real question: do NSAID users get GI bleeds more than non-users? Naive result: NSAID users 16.4% vs non-users 40.1%, **RR 0.41** — i.e. NSAIDs look *protective*. That's the OPPOSITE of known truth (NSAIDs cause bleeds), so the analysis is wrong, not the medicine.
 - Diagnosed three causes: (1) **asymmetric follow-up window** (exposed counted only after start, non-users over their whole life) — fixing it (ever vs ever) moved RR from 0.41 to ~0.91; (2) **selection bias** (non-users are an unusual 30% leftover); (3) **confounding** (age, aspirin).
 - Lesson: observational RWE shows **association, not causation**. A naive 2x2 can give a confidently wrong answer. Rigorous designs (new-user, active-comparator, matched follow-up, confounder adjustment) exist precisely to fight these biases.
+
+## Phase 6-7 — Dashboard, deploy, and finish
+- Built a polished, tabbed Streamlit dashboard (Overview / Utilization / Safety / Methods) with Altair charts and a **forest plot** that visually shows the crude risk ratio sitting left of the "no effect" line while the adjusted estimate crosses it — the confounding story in one picture.
+- Committed the 15 MB DuckDB into the repo and **pinned dependency versions** so the cloud build matches my machine, then deployed live on **Streamlit Community Cloud** (public URL for the CV).
+- Wrote the README (problem, data, design, headline result, how-to-run, limitations) and pushed everything public on GitHub.
+- Honest reflection: the descriptive parts were quick, but the real analyst value was the *judgment* — spotting the implausible result, diagnosing the biases, and using a proper new-user active-comparator design with adjustment. That's the part that's defensible in an interview.

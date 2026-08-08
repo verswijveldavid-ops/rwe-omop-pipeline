@@ -32,6 +32,14 @@ Streamlit Community Cloud, no Docker, no ML.
 - app/   Streamlit dashboard (app.py)
 - docs/  omop_glossary.md, architecture diagram, screenshots
 
-## Status
-Phase 0 (setup): DONE — folder, isolated venv, requirements.txt, layout, git init, .gitignore, these docs.
-NEXT: Phase 1 — teach OMOP CDM before touching data (pure teaching, no code).
+## Status — COMPLETE (2026-08-08)
+All phases done. Pipeline: download Eunomia -> DuckDB -> cohorts (concept-id code-lists) ->
+NSAID drug utilization -> comparative safety analysis (new-user active-comparator, age/sex-adjusted
+logistic regression with 95% CIs) -> tabbed Streamlit/Altair dashboard.
+Headline result: crude RR 0.49 (0.43-0.57) collapses to adjusted OR 0.98 (0.78-1.24) after adjustment
+— a clean demonstration of confounding.
+- GitHub: https://github.com/verswijveldavid-ops/rwe-omop-pipeline
+- Live app: https://rwe-omop-pipeline-b7bmnfx4uicppdwharuxfb.streamlit.app/
+Open follow-ups (optional): set the Streamlit app to PUBLIC (currently redirects to login);
+add screenshots to README; pin on David's profile README next to Project 1.
+Possible depth later (Phase 8): scale to OHDSI SynPUF; propensity-score matching; person-time incidence.
