@@ -14,3 +14,7 @@ data/*
 # Editor / OS
 .idea/
 *.log
+
+# Claude Code tooling (not part of the project)
+.claude/
+.agents/
