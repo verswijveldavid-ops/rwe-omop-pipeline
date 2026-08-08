@@ -18,3 +18,4 @@ data/*
 # Claude Code tooling (not part of the project)
 .claude/
 .agents/
+!data/eunomia.duckdb
