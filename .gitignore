@@ -3,12 +3,10 @@
 __pycache__/
 *.pyc
 
-# Data & database (large, regenerable — downloaded/built by our scripts)
-data/*.sqlite
-data/*.db
-data/*.duckdb
-data/*.csv
-data/*.zip
+# Data & database — everything in data/ is downloaded/generated & regenerable.
+# Ignore it all, but keep the empty folder via .gitkeep.
+data/*
+!data/.gitkeep
 
 # macOS clutter
 .DS_Store
